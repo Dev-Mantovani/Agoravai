@@ -1,6 +1,6 @@
 export const NOMES_MESES = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+  'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
 ];
 
 export function obterNomeMes(mes: number): string {
