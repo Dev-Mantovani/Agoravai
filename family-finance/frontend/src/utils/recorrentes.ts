@@ -1,48 +1,48 @@
 import { supabase } from '../lib/supabase';
 
 export async function criarTransacoesRecorrentesMes(
-  userId: string,
-  year: number,
-  month: number,
+  idUsuario: string,
+  ano: number,
+  mes: number,
 ) {
   try {
     const { data: recorrentes } = await supabase
       .from('transactions')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', idUsuario)
       .eq('recorrente', true);
 
     if (!recorrentes || recorrentes.length === 0) return;
 
-    const recorrentesUnicas = recorrentes.reduce((acc: any[], curr) => {
-      if (!acc.find((r) => r.titulo === curr.titulo && r.tipo === curr.tipo)) {
-        acc.push(curr);
+    const recorrentesUnicas = recorrentes.reduce((acumulador: any[], atual) => {
+      if (!acumulador.find((r) => r.titulo === atual.titulo && r.tipo === atual.tipo)) {
+        acumulador.push(atual);
       }
-      return acc;
+      return acumulador;
     }, []);
 
     for (const recorrente of recorrentesUnicas) {
-      const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-      const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+      const dataInicio = `${ano}-${String(mes).padStart(2, '0')}-01`;
+      const dataFim = new Date(ano, mes, 0).toISOString().split('T')[0];
 
-      const { data: existente } = await supabase
+      const { data: jaExiste } = await supabase
         .from('transactions')
         .select('id')
-        .eq('user_id', userId)
+        .eq('user_id', idUsuario)
         .eq('titulo', recorrente.titulo)
         .eq('tipo', recorrente.tipo)
-        .gte('data', startDate)
-        .lte('data', endDate)
+        .gte('data', dataInicio)
+        .lte('data', dataFim)
         .single();
 
-      if (!existente) {
+      if (!jaExiste) {
         const diaOriginal = parseInt(recorrente.data.split('-')[2]);
-        const ultimoDiaMes = new Date(year, month, 0).getDate();
+        const ultimoDiaMes = new Date(ano, mes, 0).getDate();
         const dia = Math.min(diaOriginal, ultimoDiaMes);
-        const novaData = `${year}-${String(month).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+        const novaData = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
 
         await supabase.from('transactions').insert({
-          user_id: userId,
+          user_id: idUsuario,
           tipo: recorrente.tipo,
           titulo: recorrente.titulo,
           valor: recorrente.valor,
@@ -56,7 +56,7 @@ export async function criarTransacoesRecorrentesMes(
         });
       }
     }
-  } catch (error) {
-    console.error('Erro ao criar recorrentes:', error);
+  } catch (erro) {
+    console.error('Erro ao criar recorrentes:', erro);
   }
 }

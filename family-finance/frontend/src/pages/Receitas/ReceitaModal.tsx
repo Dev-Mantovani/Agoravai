@@ -1,65 +1,59 @@
 import { useState } from 'react';
 import Modal from '../../components/Modal/Modal';
 import { supabase } from '../../lib/supabase';
-// ↓ StatusType importado de types/index.ts — centralizado para reuso em todo o projeto
-import type { Transaction, FamilyMember, Account, StatusType } from '../../types';
+import type { Transacao, MembroFamilia, Conta, TipoStatus } from '../../types';
 
-interface ReceitaModalProps {
-  userId: string;
-  receita: Transaction | null;
-  members: FamilyMember[];
-  accounts: Account[];
-  onClose: () => void;
-  onSave: () => void;
+interface PropsModalReceita {
+  idUsuario: string;
+  receita: Transacao | null;
+  membros: MembroFamilia[];
+  contas: Conta[];
+  aoFechar: () => void;
+  aoSalvar: () => void;
 }
 
-export default function ReceitaModal({
-  userId,
+export default function ModalReceita({
+  idUsuario,
   receita,
-  members,
-  accounts,
-  onClose,
-  onSave,
-}: ReceitaModalProps) {
+  membros,
+  contas,
+  aoFechar,
+  aoSalvar,
+}: PropsModalReceita) {
   const [titulo, setTitulo] = useState(receita?.titulo ?? '');
   const [valor, setValor] = useState<string | number>(receita?.valor ?? '');
   const [categoria, setCategoria] = useState(receita?.categoria ?? 'Salário');
-  const [membroId, setMembroId] = useState(receita?.membro_id ?? '');
-  const [contaId, setContaId] = useState(receita?.conta_id ?? '');
+  const [idMembro, setIdMembro] = useState(receita?.membro_id ?? '');
+  const [idConta, setIdConta] = useState(receita?.conta_id ?? '');
   const [recorrente, setRecorrente] = useState(receita?.recorrente ?? false);
-
-  // useState<StatusType> → tipar explicitamente restringe o estado a apenas
-  // 'pago' | 'pendente' | 'recebido'. Se tentar setar qualquer outra string,
-  // o TypeScript avisa em tempo de compilação (antes de rodar o app).
-  const [status, setStatus] = useState<StatusType>(receita?.status ?? 'recebido');
-
+  const [status, setStatus] = useState<TipoStatus>(receita?.status ?? 'recebido');
   const [data, setData] = useState(receita?.data ?? new Date().toISOString().split('T')[0]);
 
-  const handleSave = async () => {
-    const payload = {
-      user_id: userId,
+  const salvar = async () => {
+    const dados = {
+      user_id: idUsuario,
       tipo: 'receita',
       titulo,
       valor: parseFloat(String(valor)),
       categoria,
-      membro_id: membroId,
-      conta_id: contaId || null,
+      membro_id: idMembro,
+      conta_id: idConta || null,
       recorrente,
       status,
       data,
     };
 
     if (receita) {
-      await supabase.from('transactions').update(payload).eq('id', receita.id);
+      await supabase.from('transactions').update(dados).eq('id', receita.id);
     } else {
-      await supabase.from('transactions').insert(payload);
+      await supabase.from('transactions').insert(dados);
     }
 
-    onSave();
+    aoSalvar();
   };
 
   return (
-    <Modal title={`${receita ? 'Editar' : 'Nova'} Receita`} onClose={onClose}>
+    <Modal titulo={`${receita ? 'Editar' : 'Nova'} Receita`} aoFechar={aoFechar}>
       <div className="form-group">
         <label className="form-label">Título</label>
         <input className="form-input" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex: Salário" />
@@ -81,17 +75,17 @@ export default function ReceitaModal({
 
       <div className="form-group">
         <label className="form-label">Pessoa</label>
-        <select className="form-select" value={membroId} onChange={(e) => setMembroId(e.target.value)}>
+        <select className="form-select" value={idMembro} onChange={(e) => setIdMembro(e.target.value)}>
           <option value="">Selecione</option>
-          {members.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
+          {membros.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
         </select>
       </div>
 
       <div className="form-group">
         <label className="form-label">Conta</label>
-        <select className="form-select" value={contaId} onChange={(e) => setContaId(e.target.value)}>
+        <select className="form-select" value={idConta} onChange={(e) => setIdConta(e.target.value)}>
           <option value="">Selecione (opcional)</option>
-          {accounts.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
+          {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
       </div>
 
@@ -102,9 +96,7 @@ export default function ReceitaModal({
 
       <div className="form-group">
         <label className="form-label">Status</label>
-        {/* "as StatusType" → cast seguro porque você controla os <option> values.
-            Diferente de "as any", mantém a segurança de tipos no restante do código. */}
-        <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value as StatusType)}>
+        <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value as TipoStatus)}>
           <option value="recebido">Recebido</option>
           <option value="pendente">Pendente</option>
         </select>
@@ -117,7 +109,7 @@ export default function ReceitaModal({
         </label>
       </div>
 
-      <button className="btn-primary" onClick={handleSave} disabled={!titulo || !valor || !membroId}>
+      <button className="btn-primary" onClick={salvar} disabled={!titulo || !valor || !idMembro}>
         {receita ? 'Atualizar' : 'Adicionar'} Receita
       </button>
     </Modal>

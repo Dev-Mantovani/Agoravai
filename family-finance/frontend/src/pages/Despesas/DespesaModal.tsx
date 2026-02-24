@@ -1,71 +1,65 @@
 import { useState } from 'react';
 import Modal from '../../components/Modal/Modal';
 import { supabase } from '../../lib/supabase';
-// ↓ StatusType importado de types/index.ts — 'pago' | 'pendente' | 'recebido'
-import type { Transaction, FamilyMember, Account, Card, StatusType } from '../../types';
+import type { Transacao, MembroFamilia, Conta, Cartao, TipoStatus } from '../../types';
 
-interface DespesaModalProps {
-  userId: string;
-  despesa: Transaction | null;
-  members: FamilyMember[];
-  accounts: Account[];
-  cards: Card[];
-  onClose: () => void;
-  onSave: () => void;
+interface PropsModalDespesa {
+  idUsuario: string;
+  despesa: Transacao | null;
+  membros: MembroFamilia[];
+  contas: Conta[];
+  cartoes: Cartao[];
+  aoFechar: () => void;
+  aoSalvar: () => void;
 }
 
 const CATEGORIAS = ['Alimentação', 'Moradia', 'Transporte', 'Saúde', 'Educação', 'Lazer', 'Assinaturas', 'Contas', 'Outros'];
 
-export default function DespesaModal({
-  userId,
+export default function ModalDespesa({
+  idUsuario,
   despesa,
-  members,
-  accounts,
-  cards,
-  onClose,
-  onSave,
-}: DespesaModalProps) {
+  membros,
+  contas,
+  cartoes,
+  aoFechar,
+  aoSalvar,
+}: PropsModalDespesa) {
   const [titulo, setTitulo] = useState(despesa?.titulo ?? '');
   const [valor, setValor] = useState<string | number>(despesa?.valor ?? '');
   const [categoria, setCategoria] = useState(despesa?.categoria ?? 'Alimentação');
-  const [membroId, setMembroId] = useState(despesa?.membro_id ?? '');
-  const [contaId, setContaId] = useState(despesa?.conta_id ?? '');
-  const [cartaoId, setCartaoId] = useState(despesa?.cartao_id ?? '');
+  const [idMembro, setIdMembro] = useState(despesa?.membro_id ?? '');
+  const [idConta, setIdConta] = useState(despesa?.conta_id ?? '');
+  const [idCartao, setIdCartao] = useState(despesa?.cartao_id ?? '');
   const [recorrente, setRecorrente] = useState(despesa?.recorrente ?? false);
-
-  // useState<StatusType> → o estado só aceita 'pago' | 'pendente' | 'recebido'.
-  // Sem essa tipagem explícita, o TypeScript inferiria como string genérica
-  // e você precisaria de "as any" no onChange.
-  const [status, setStatus] = useState<StatusType>(despesa?.status ?? 'pago');
-
+  const [status, setStatus] = useState<TipoStatus>(despesa?.status ?? 'pago');
   const [data, setData] = useState(despesa?.data ?? new Date().toISOString().split('T')[0]);
 
-  const handleSave = async () => {
-    const payload = {
-      user_id: userId,
+  const salvar = async () => {
+    const dados = {
+      user_id: idUsuario,
       tipo: 'despesa',
       titulo,
       valor: parseFloat(String(valor)),
       categoria,
-      membro_id: membroId,
-      conta_id: contaId || null,
-      cartao_id: cartaoId || null,
+      membro_id: idMembro,
+      conta_id: idConta || null,
+      cartao_id: idCartao || null,
       recorrente,
       status,
       data,
     };
 
     if (despesa) {
-      await supabase.from('transactions').update(payload).eq('id', despesa.id);
+      await supabase.from('transactions').update(dados).eq('id', despesa.id);
     } else {
-      await supabase.from('transactions').insert(payload);
+      await supabase.from('transactions').insert(dados);
     }
 
-    onSave();
+    aoSalvar();
   };
 
   return (
-    <Modal title={`${despesa ? 'Editar' : 'Nova'} Despesa`} onClose={onClose}>
+    <Modal titulo={`${despesa ? 'Editar' : 'Nova'} Despesa`} aoFechar={aoFechar}>
       <div className="form-group">
         <label className="form-label">Título</label>
         <input className="form-input" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex: Mercado" />
@@ -85,25 +79,25 @@ export default function DespesaModal({
 
       <div className="form-group">
         <label className="form-label">Pessoa</label>
-        <select className="form-select" value={membroId} onChange={(e) => setMembroId(e.target.value)}>
+        <select className="form-select" value={idMembro} onChange={(e) => setIdMembro(e.target.value)}>
           <option value="">Selecione</option>
-          {members.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
+          {membros.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
         </select>
       </div>
 
       <div className="form-group">
         <label className="form-label">Conta</label>
-        <select className="form-select" value={contaId} onChange={(e) => setContaId(e.target.value)}>
+        <select className="form-select" value={idConta} onChange={(e) => setIdConta(e.target.value)}>
           <option value="">Selecione (opcional)</option>
-          {accounts.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
+          {contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
       </div>
 
       <div className="form-group">
         <label className="form-label">Cartão</label>
-        <select className="form-select" value={cartaoId} onChange={(e) => setCartaoId(e.target.value)}>
+        <select className="form-select" value={idCartao} onChange={(e) => setIdCartao(e.target.value)}>
           <option value="">Selecione (opcional)</option>
-          {cards.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          {cartoes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
       </div>
 
@@ -114,8 +108,7 @@ export default function DespesaModal({
 
       <div className="form-group">
         <label className="form-label">Status</label>
-        {/* "as StatusType" → cast seguro, você controla os <option> values. */}
-        <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value as StatusType)}>
+        <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value as TipoStatus)}>
           <option value="pago">Pago</option>
           <option value="pendente">Pendente</option>
         </select>
@@ -128,7 +121,7 @@ export default function DespesaModal({
         </label>
       </div>
 
-      <button className="btn-primary" onClick={handleSave} disabled={!titulo || !valor || !membroId}>
+      <button className="btn-primary" onClick={salvar} disabled={!titulo || !valor || !idMembro}>
         {despesa ? 'Atualizar' : 'Adicionar'} Despesa
       </button>
     </Modal>

@@ -1,48 +1,46 @@
-// ==================== UNION TYPES ====================
-// Centralizados aqui para reutilizar em todo o projeto.
-// Ao usar num select: onChange={(e) => setX(e.target.value as NomeDoTipo)}
+// ==================== TIPOS UNION ====================
 
 /** Tipo de família no onboarding */
-export type FamilyType = 'sozinho' | 'casado' | 'morando_junto' | 'familia';
+export type TipoFamilia = 'sozinho' | 'casado' | 'morando_junto' | 'familia';
 
 /** Status de uma transação */
-export type StatusType = 'pago' | 'pendente' | 'recebido';
+export type TipoStatus = 'pago' | 'pendente' | 'recebido';
 
 /** Tipo de uma transação */
-export type TransactionTipo = 'receita' | 'despesa';
+export type TipoTransacao = 'receita' | 'despesa';
 
 /** Tipo de conta bancária */
-export type AccountTipo = 'corrente' | 'poupanca' | 'investimento';
+export type TipoConta = 'corrente' | 'poupanca' | 'investimento';
 
 /** Relação de um membro da família */
-export type RelacaoType = 'conjuge' | 'filho' | 'mae' | 'pai' | 'irmao' | 'outro';
+export type TipoRelacao = 'conjuge' | 'filho' | 'mae' | 'pai' | 'irmao' | 'outro';
 
 // ==================== INTERFACES ====================
 
-export interface User {
+export interface Usuario {
   id: string;
   email: string;
   nome?: string;
 }
 
-export interface FamilyMember {
+export interface MembroFamilia {
   id: string;
   user_id: string;
   nome: string;
-  relacao: RelacaoType;
+  relacao: TipoRelacao;
   cor: string;
 }
 
-export interface Account {
+export interface Conta {
   id: string;
   user_id: string;
   nome: string;
-  tipo: AccountTipo;
+  tipo: TipoConta;
   saldo: number;
   cor: string;
 }
 
-export interface Card {
+export interface Cartao {
   id: string;
   user_id: string;
   nome: string;
@@ -52,18 +50,18 @@ export interface Card {
   fechamento_dia: number;
 }
 
-export interface Transaction {
+export interface Transacao {
   id: string;
   user_id: string;
-  tipo: TransactionTipo;
+  tipo: TipoTransacao;
   titulo: string;
   valor: number;
   categoria: string;
   membro_id: string;
-  membro?: FamilyMember;
+  membro?: MembroFamilia;
   conta_id?: string;
   cartao_id?: string;
   recorrente: boolean;
-  status: StatusType;
+  status: TipoStatus;
   data: string;
 }

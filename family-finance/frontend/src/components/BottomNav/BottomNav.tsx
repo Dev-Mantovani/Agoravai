@@ -1,30 +1,30 @@
 import styles from './BottomNav.module.css';
 
-type View = 'dashboard' | 'receitas' | 'despesas' | 'membros';
+type Tela = 'dashboard' | 'receitas' | 'despesas' | 'membros';
 
-interface BottomNavProps {
-  activeView: View;
-  setActiveView: (view: View) => void;
+interface PropsNavegacaoInferior {
+  telaAtiva: Tela;
+  definirTela: (tela: Tela) => void;
 }
 
-const NAV_ITEMS: { view: View; icon: string; label: string }[] = [
-  { view: 'dashboard', icon: '🏠', label: 'Início' },
-  { view: 'receitas', icon: '💰', label: 'Receitas' },
-  { view: 'despesas', icon: '💸', label: 'Despesas' },
-  { view: 'membros', icon: '👨‍👩‍👧‍👦', label: 'Família' },
+const ITENS_NAV: { tela: Tela; icone: string; rotulo: string }[] = [
+  { tela: 'dashboard', icone: '🏠', rotulo: 'Início' },
+  { tela: 'receitas',  icone: '💰', rotulo: 'Receitas' },
+  { tela: 'despesas',  icone: '💸', rotulo: 'Despesas' },
+  { tela: 'membros',   icone: '👨‍👩‍👧‍👦', rotulo: 'Família' },
 ];
 
-export default function BottomNav({ activeView, setActiveView }: BottomNavProps) {
+export default function NavegacaoInferior({ telaAtiva, definirTela }: PropsNavegacaoInferior) {
   return (
     <nav className={styles.nav}>
-      {NAV_ITEMS.map(({ view, icon, label }) => (
+      {ITENS_NAV.map(({ tela, icone, rotulo }) => (
         <button
-          key={view}
-          className={`${styles.navItem} ${activeView === view ? styles.active : ''}`}
-          onClick={() => setActiveView(view)}
+          key={tela}
+          className={`${styles.navItem} ${telaAtiva === tela ? styles.active : ''}`}
+          onClick={() => definirTela(tela)}
         >
-          <span className={styles.navIcon}>{icon}</span>
-          <span className={styles.navLabel}>{label}</span>
+          <span className={styles.navIcon}>{icone}</span>
+          <span className={styles.navLabel}>{rotulo}</span>
         </button>
       ))}
     </nav>

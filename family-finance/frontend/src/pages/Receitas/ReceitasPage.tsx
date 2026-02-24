@@ -1,57 +1,57 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { criarTransacoesRecorrentesMes } from '../../utils/recorrentes';
-import { getMonthDateRange, formatDate } from '../../utils/months';
-import ReceitaModal from './ReceitaModal';
-import type { Transaction, FamilyMember, Account } from '../../types';
+import { obterPeriodoMes, formatarData } from '../../utils/months';
+import ModalReceita from './ReceitaModal';
+import type { Transacao, MembroFamilia, Conta } from '../../types';
 import styles from './ReceitasPage.module.css';
 
-interface ReceitasPageProps {
-  userId: string;
-  currentMonth: number;
-  currentYear: number;
+interface PropsReceitasPage {
+  idUsuario: string;
+  mesAtual: number;
+  anoAtual: number;
 }
 
-export default function ReceitasPage({ userId, currentMonth, currentYear }: ReceitasPageProps) {
-  const [receitas, setReceitas] = useState<Transaction[]>([]);
-  const [members, setMembers] = useState<FamilyMember[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [editingReceita, setEditingReceita] = useState<Transaction | null>(null);
+export default function PaginaReceitas({ idUsuario, mesAtual, anoAtual }: PropsReceitasPage) {
+  const [receitas, setReceitas] = useState<Transacao[]>([]);
+  const [membros, setMembros] = useState<MembroFamilia[]>([]);
+  const [contas, setContas] = useState<Conta[]>([]);
+  const [mostrarModal, setMostrarModal] = useState(false);
+  const [editandoReceita, setEditandoReceita] = useState<Transacao | null>(null);
 
   useEffect(() => {
-    loadData();
-  }, [userId, currentMonth, currentYear]);
+    carregarDados();
+  }, [idUsuario, mesAtual, anoAtual]);
 
-  const loadData = async () => {
-    const { startDateStr, endDateStr } = getMonthDateRange(currentYear, currentMonth);
-    await criarTransacoesRecorrentesMes(userId, currentYear, currentMonth);
+  const carregarDados = async () => {
+    const { dataInicioStr, dataFimStr } = obterPeriodoMes(anoAtual, mesAtual);
+    await criarTransacoesRecorrentesMes(idUsuario, anoAtual, mesAtual);
 
-    const [recRes, memRes, accRes] = await Promise.all([
-      supabase.from('transactions').select('*, membro:family_members(*)').eq('user_id', userId).eq('tipo', 'receita').gte('data', startDateStr).lte('data', endDateStr).order('data', { ascending: false }),
-      supabase.from('family_members').select('*').eq('user_id', userId),
-      supabase.from('accounts').select('*').eq('user_id', userId),
+    const [resReceitas, resMembros, resContas] = await Promise.all([
+      supabase.from('transactions').select('*, membro:family_members(*)').eq('user_id', idUsuario).eq('tipo', 'receita').gte('data', dataInicioStr).lte('data', dataFimStr).order('data', { ascending: false }),
+      supabase.from('family_members').select('*').eq('user_id', idUsuario),
+      supabase.from('accounts').select('*').eq('user_id', idUsuario),
     ]);
 
-    if (recRes.data) setReceitas(recRes.data);
-    if (memRes.data) setMembers(memRes.data);
-    if (accRes.data) setAccounts(accRes.data);
+    if (resReceitas.data) setReceitas(resReceitas.data);
+    if (resMembros.data) setMembros(resMembros.data);
+    if (resContas.data) setContas(resContas.data);
   };
 
-  const handleDelete = async (id: string) => {
+  const excluir = async (id: string) => {
     if (window.confirm('Deseja excluir esta receita?')) {
       await supabase.from('transactions').delete().eq('id', id);
-      loadData();
+      carregarDados();
     }
   };
 
-  const totalReceitas = receitas.filter((r) => r.status === 'recebido').reduce((s, r) => s + r.valor, 0);
+  const totalReceitas = receitas.filter((r) => r.status === 'recebido').reduce((soma, r) => soma + r.valor, 0);
 
   return (
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <h3 className={styles.pageTitle}><span>💰</span> Receitas</h3>
-        <button className="btn-add" onClick={() => { setEditingReceita(null); setShowModal(true); }}>
+        <button className="btn-add" onClick={() => { setEditandoReceita(null); setMostrarModal(true); }}>
           + Adicionar
         </button>
       </div>
@@ -69,7 +69,7 @@ export default function ReceitasPage({ userId, currentMonth, currentYear }: Rece
           <div className="empty-state">
             <span className="empty-icon">📭</span>
             <p>Nenhuma receita cadastrada neste mês</p>
-            <button className="btn-secondary" style={{ display: 'inline-block', width: 'auto', padding: '12px 24px' }} onClick={() => setShowModal(true)}>
+            <button className="btn-secondary" style={{ display: 'inline-block', width: 'auto', padding: '12px 24px' }} onClick={() => setMostrarModal(true)}>
               Adicionar primeira receita
             </button>
           </div>
@@ -83,7 +83,7 @@ export default function ReceitasPage({ userId, currentMonth, currentYear }: Rece
                   {r.recorrente && <span className="recorrente-badge">🔄</span>}
                 </div>
                 <div className={styles.transactionDetails}>
-                  <span>{formatDate(r.data)}</span>
+                  <span>{formatarData(r.data)}</span>
                   <span>•</span>
                   <span>{r.membro?.nome}</span>
                   <span className={`status-badge ${r.status}`}>{r.status}</span>
@@ -93,22 +93,22 @@ export default function ReceitasPage({ userId, currentMonth, currentYear }: Rece
                 +R$ {r.valor.toFixed(2)}
               </div>
               <div className={styles.transactionActions}>
-                <button className="btn-icon" onClick={() => { setEditingReceita(r); setShowModal(true); }}>✏️</button>
-                <button className="btn-icon" onClick={() => handleDelete(r.id)}>🗑️</button>
+                <button className="btn-icon" onClick={() => { setEditandoReceita(r); setMostrarModal(true); }}>✏️</button>
+                <button className="btn-icon" onClick={() => excluir(r.id)}>🗑️</button>
               </div>
             </div>
           ))
         )}
       </div>
 
-      {showModal && (
-        <ReceitaModal
-          userId={userId}
-          receita={editingReceita}
-          members={members}
-          accounts={accounts}
-          onClose={() => { setShowModal(false); setEditingReceita(null); }}
-          onSave={() => { loadData(); setShowModal(false); setEditingReceita(null); }}
+      {mostrarModal && (
+        <ModalReceita
+          idUsuario={idUsuario}
+          receita={editandoReceita}
+          membros={membros}
+          contas={contas}
+          aoFechar={() => { setMostrarModal(false); setEditandoReceita(null); }}
+          aoSalvar={() => { carregarDados(); setMostrarModal(false); setEditandoReceita(null); }}
         />
       )}
     </div>

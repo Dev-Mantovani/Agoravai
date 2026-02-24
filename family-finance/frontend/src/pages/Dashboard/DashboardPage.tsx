@@ -1,95 +1,95 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { criarTransacoesRecorrentesMes } from '../../utils/recorrentes';
-import { getMonthDateRange } from '../../utils/months';
-import LoadingScreen from '../../components/LoadingScreen/LoadingScreen';
-import type { Transaction, Card, Account } from '../../types';
+import { obterPeriodoMes } from '../../utils/months';
+import TelaDeCarga from '../../components/LoadingScreen/LoadingScreen';
+import type { Transacao, Cartao, Conta } from '../../types';
 import styles from './DashboardPage.module.css';
 
-interface DashboardPageProps {
-  userId: string;
-  currentMonth: number;
-  currentYear: number;
+interface PropsDashboard {
+  idUsuario: string;
+  mesAtual: number;
+  anoAtual: number;
 }
 
-export default function DashboardPage({ userId, currentMonth, currentYear }: DashboardPageProps) {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [cards, setCards] = useState<Card[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [receitasRecorrentes, setReceitasRecorrentes] = useState<Transaction[]>([]);
-  const [despesasRecorrentes, setDespesasRecorrentes] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function PaginaDashboard({ idUsuario, mesAtual, anoAtual }: PropsDashboard) {
+  const [transacoes, setTransacoes] = useState<Transacao[]>([]);
+  const [cartoes, setCartoes] = useState<Cartao[]>([]);
+  const [contas, setContas] = useState<Conta[]>([]);
+  const [receitasRecorrentes, setReceitasRecorrentes] = useState<Transacao[]>([]);
+  const [despesasRecorrentes, setDespesasRecorrentes] = useState<Transacao[]>([]);
+  const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    loadData();
-  }, [userId, currentMonth, currentYear]);
+    carregarDados();
+  }, [idUsuario, mesAtual, anoAtual]);
 
   useEffect(() => {
-    loadRecorrentes();
-  }, [userId]);
+    carregarRecorrentes();
+  }, [idUsuario]);
 
-  const loadData = async () => {
-    setLoading(true);
-    const { startDateStr, endDateStr } = getMonthDateRange(currentYear, currentMonth);
-    await criarTransacoesRecorrentesMes(userId, currentYear, currentMonth);
+  const carregarDados = async () => {
+    setCarregando(true);
+    const { dataInicioStr, dataFimStr } = obterPeriodoMes(anoAtual, mesAtual);
+    await criarTransacoesRecorrentesMes(idUsuario, anoAtual, mesAtual);
 
-    const [transRes, cardsRes, accountsRes] = await Promise.all([
+    const [resTransacoes, resCartoes, resContas] = await Promise.all([
       supabase
         .from('transactions')
         .select('*, membro:family_members(*)')
-        .eq('user_id', userId)
-        .gte('data', startDateStr)
-        .lte('data', endDateStr)
+        .eq('user_id', idUsuario)
+        .gte('data', dataInicioStr)
+        .lte('data', dataFimStr)
         .order('data', { ascending: false }),
-      supabase.from('cards').select('*').eq('user_id', userId),
-      supabase.from('accounts').select('*').eq('user_id', userId),
+      supabase.from('cards').select('*').eq('user_id', idUsuario),
+      supabase.from('accounts').select('*').eq('user_id', idUsuario),
     ]);
 
-    if (transRes.data) setTransactions(transRes.data);
-    if (cardsRes.data) setCards(cardsRes.data);
-    if (accountsRes.data) setAccounts(accountsRes.data);
-    setLoading(false);
+    if (resTransacoes.data) setTransacoes(resTransacoes.data);
+    if (resCartoes.data) setCartoes(resCartoes.data);
+    if (resContas.data) setContas(resContas.data);
+    setCarregando(false);
   };
 
-  const loadRecorrentes = async () => {
-    const uniqueBy = (arr: Transaction[], key: keyof Transaction) =>
-      arr.reduce((acc: Transaction[], curr) => {
-        if (!acc.find((r) => r[key] === curr[key])) acc.push(curr);
-        return acc;
+  const carregarRecorrentes = async () => {
+    const filtrarUnicos = (lista: Transacao[], campo: keyof Transacao) =>
+      lista.reduce((acumulador: Transacao[], atual) => {
+        if (!acumulador.find((r) => r[campo] === atual[campo])) acumulador.push(atual);
+        return acumulador;
       }, []);
 
-    const [recRes, despRes] = await Promise.all([
-      supabase.from('transactions').select('*, membro:family_members(*)').eq('user_id', userId).eq('tipo', 'receita').eq('recorrente', true),
-      supabase.from('transactions').select('*, membro:family_members(*)').eq('user_id', userId).eq('tipo', 'despesa').eq('recorrente', true),
+    const [resReceitas, resDespesas] = await Promise.all([
+      supabase.from('transactions').select('*, membro:family_members(*)').eq('user_id', idUsuario).eq('tipo', 'receita').eq('recorrente', true),
+      supabase.from('transactions').select('*, membro:family_members(*)').eq('user_id', idUsuario).eq('tipo', 'despesa').eq('recorrente', true),
     ]);
 
-    if (recRes.data) setReceitasRecorrentes(uniqueBy(recRes.data, 'titulo'));
-    if (despRes.data) setDespesasRecorrentes(uniqueBy(despRes.data, 'titulo'));
+    if (resReceitas.data) setReceitasRecorrentes(filtrarUnicos(resReceitas.data, 'titulo'));
+    if (resDespesas.data) setDespesasRecorrentes(filtrarUnicos(resDespesas.data, 'titulo'));
   };
 
-  if (loading) return <LoadingScreen />;
+  if (carregando) return <TelaDeCarga />;
 
-  const receitas = transactions.filter((t) => t.tipo === 'receita' && t.status === 'recebido').reduce((s, t) => s + t.valor, 0);
-  const despesas = transactions.filter((t) => t.tipo === 'despesa' && t.status === 'pago').reduce((s, t) => s + t.valor, 0);
-  const saldo = receitas - despesas;
-  const totalRecRec = receitasRecorrentes.reduce((s, r) => s + r.valor, 0);
-  const totalDespRec = despesasRecorrentes.reduce((s, d) => s + d.valor, 0);
+  const totalReceitas = transacoes.filter((t) => t.tipo === 'receita' && t.status === 'recebido').reduce((soma, t) => soma + t.valor, 0);
+  const totalDespesas = transacoes.filter((t) => t.tipo === 'despesa' && t.status === 'pago').reduce((soma, t) => soma + t.valor, 0);
+  const saldo = totalReceitas - totalDespesas;
+  const totalReceitasRecorrentes = receitasRecorrentes.reduce((soma, r) => soma + r.valor, 0);
+  const totalDespesasRecorrentes = despesasRecorrentes.reduce((soma, d) => soma + d.valor, 0);
 
   return (
     <div className={styles.page}>
-      {/* Summary */}
+      {/* Resumo */}
       <section className={styles.summarySection}>
         <div className={styles.summaryCards}>
           {[
-            { label: '💵 Receitas do Mês', value: receitas, cls: styles.receitas },
-            { label: '💳 Despesas do Mês', value: despesas, cls: styles.despesas },
-            { label: '💎 Saldo Final', value: saldo, cls: styles.saldo },
-          ].map(({ label, value, cls }) => (
-            <div key={label} className={`${styles.summaryCard} ${cls}`}>
-              <div className={styles.cardLabel}>{label}</div>
+            { rotulo: '💵 Receitas do Mês', valor: totalReceitas,  classe: styles.receitas },
+            { rotulo: '💳 Despesas do Mês', valor: totalDespesas,  classe: styles.despesas },
+            { rotulo: '💎 Saldo Final',      valor: saldo,          classe: styles.saldo },
+          ].map(({ rotulo, valor, classe }) => (
+            <div key={rotulo} className={`${styles.summaryCard} ${classe}`}>
+              <div className={styles.cardLabel}>{rotulo}</div>
               <div className={styles.cardValue}>
                 <span className={styles.currency}>R$</span>
-                <span>{value.toFixed(2)}</span>
+                <span>{valor.toFixed(2)}</span>
               </div>
             </div>
           ))}
@@ -112,7 +112,7 @@ export default function DashboardPage({ userId, currentMonth, currentYear }: Das
                     <div className={styles.recorrenteLabel}>Receitas Fixas</div>
                     <div className={styles.recorrenteCount}>{receitasRecorrentes.length} fonte{receitasRecorrentes.length > 1 ? 's' : ''}</div>
                   </div>
-                  <div className={styles.recorrenteTotal}>R$ {totalRecRec.toFixed(2)}</div>
+                  <div className={styles.recorrenteTotal}>R$ {totalReceitasRecorrentes.toFixed(2)}</div>
                 </div>
                 <div className={styles.recorrenteItems}>
                   {receitasRecorrentes.map((r) => (
@@ -133,7 +133,7 @@ export default function DashboardPage({ userId, currentMonth, currentYear }: Das
                     <div className={styles.recorrenteLabel}>Despesas Fixas</div>
                     <div className={styles.recorrenteCount}>{despesasRecorrentes.length} conta{despesasRecorrentes.length > 1 ? 's' : ''}</div>
                   </div>
-                  <div className={styles.recorrenteTotal}>R$ {totalDespRec.toFixed(2)}</div>
+                  <div className={styles.recorrenteTotal}>R$ {totalDespesasRecorrentes.toFixed(2)}</div>
                 </div>
                 <div className={styles.recorrenteItems}>
                   {despesasRecorrentes.map((d) => (
@@ -150,42 +150,42 @@ export default function DashboardPage({ userId, currentMonth, currentYear }: Das
           <div className={styles.recorrenteSummary}>
             <div className={`${styles.recorrenteSummaryItem} ${styles.positive}`}>
               <span>💰 Receitas Fixas</span>
-              <strong>+R$ {totalRecRec.toFixed(2)}</strong>
+              <strong>+R$ {totalReceitasRecorrentes.toFixed(2)}</strong>
             </div>
             <div className={`${styles.recorrenteSummaryItem} ${styles.negative}`}>
               <span>💸 Despesas Fixas</span>
-              <strong>-R$ {totalDespRec.toFixed(2)}</strong>
+              <strong>-R$ {totalDespesasRecorrentes.toFixed(2)}</strong>
             </div>
             <div className={`${styles.recorrenteSummaryItem} ${styles.balance}`}>
               <span>💎 Saldo Recorrente</span>
-              <strong>R$ {(totalRecRec - totalDespRec).toFixed(2)}</strong>
+              <strong>R$ {(totalReceitasRecorrentes - totalDespesasRecorrentes).toFixed(2)}</strong>
             </div>
           </div>
         </section>
       )}
 
       {/* Cartões */}
-      {cards.length > 0 && (
+      {cartoes.length > 0 && (
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h3 className={styles.sectionTitle}><span>💳</span> Cartões</h3>
           </div>
           <div className={styles.cardsGrid}>
-            {cards.map((card) => (
-              <div key={card.id} className={styles.creditCard}>
+            {cartoes.map((cartao) => (
+              <div key={cartao.id} className={styles.creditCard}>
                 <div className={styles.cardHeaderInfo}>
                   <div className={styles.cardName}>
-                    <div className={styles.cardDot} style={{ background: card.cor }} />
-                    {card.nome}
+                    <div className={styles.cardDot} style={{ background: cartao.cor }} />
+                    {cartao.nome}
                   </div>
-                  <div className={styles.cardAmount}>R$ {card.usado.toFixed(2)}</div>
+                  <div className={styles.cardAmount}>R$ {cartao.usado.toFixed(2)}</div>
                 </div>
                 <div className={styles.progressLabel}>
-                  <span>R$ {card.usado.toFixed(2)} de R$ {card.limite.toFixed(2)}</span>
-                  <span>{((card.usado / card.limite) * 100).toFixed(1)}%</span>
+                  <span>R$ {cartao.usado.toFixed(2)} de R$ {cartao.limite.toFixed(2)}</span>
+                  <span>{((cartao.usado / cartao.limite) * 100).toFixed(1)}%</span>
                 </div>
                 <div className={styles.progressBar}>
-                  <div className={styles.progressFill} style={{ width: `${(card.usado / card.limite) * 100}%` }} />
+                  <div className={styles.progressFill} style={{ width: `${(cartao.usado / cartao.limite) * 100}%` }} />
                 </div>
               </div>
             ))}
@@ -194,20 +194,20 @@ export default function DashboardPage({ userId, currentMonth, currentYear }: Das
       )}
 
       {/* Contas */}
-      {accounts.length > 0 && (
+      {contas.length > 0 && (
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h3 className={styles.sectionTitle}><span>🏦</span> Contas</h3>
           </div>
           <div className={styles.cardsGrid}>
-            {accounts.map((acc) => (
-              <div key={acc.id} className={styles.bankAccount}>
+            {contas.map((conta) => (
+              <div key={conta.id} className={styles.bankAccount}>
                 <div className={styles.cardHeaderInfo}>
                   <div className={styles.cardName}>
-                    <div className={styles.cardDot} style={{ background: acc.cor }} />
-                    {acc.nome}
+                    <div className={styles.cardDot} style={{ background: conta.cor }} />
+                    {conta.nome}
                   </div>
-                  <div className={styles.cardAmount}>R$ {acc.saldo.toFixed(2)}</div>
+                  <div className={styles.cardAmount}>R$ {conta.saldo.toFixed(2)}</div>
                 </div>
               </div>
             ))}
@@ -221,7 +221,7 @@ export default function DashboardPage({ userId, currentMonth, currentYear }: Das
           <h3 className={styles.sectionTitle}><span>📊</span> Transações Recentes</h3>
         </div>
         <div className={styles.transactionList}>
-          {transactions.slice(0, 5).map((t) => (
+          {transacoes.slice(0, 5).map((t) => (
             <div key={t.id} className={styles.transactionItem}>
               <div
                 className={styles.transactionIcon}

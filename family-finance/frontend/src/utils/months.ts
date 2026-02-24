@@ -1,21 +1,21 @@
-export const MONTH_NAMES = [
+export const NOMES_MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 
-export function getMonthName(month: number): string {
-  return MONTH_NAMES[month - 1];
+export function obterNomeMes(mes: number): string {
+  return NOMES_MESES[mes - 1];
 }
 
-export function getMonthDateRange(year: number, month: number) {
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0);
+export function obterPeriodoMes(ano: number, mes: number) {
+  const dataInicio = new Date(ano, mes - 1, 1);
+  const dataFim = new Date(ano, mes, 0);
   return {
-    startDateStr: startDate.toISOString().split('T')[0],
-    endDateStr: endDate.toISOString().split('T')[0],
+    dataInicioStr: dataInicio.toISOString().split('T')[0],
+    dataFimStr: dataFim.toISOString().split('T')[0],
   };
 }
 
-export function formatDate(dateStr: string): string {
-  return dateStr.split('-').reverse().join('/');
+export function formatarData(dataStr: string): string {
+  return dataStr.split('-').reverse().join('/');
 }

@@ -1,6 +1,6 @@
 import styles from './LoadingScreen.module.css';
 
-export default function LoadingScreen() {
+export default function TelaDeCarga() {
   return (
     <div className={styles.screen}>
       <div className={styles.spinner} />

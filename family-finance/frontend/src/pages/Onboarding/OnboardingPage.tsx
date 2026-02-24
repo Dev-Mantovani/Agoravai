@@ -1,81 +1,70 @@
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
-// ↓ FamilyType e RelacaoType importados de types/index.ts
-import type { FamilyType, RelacaoType } from '../../types';
+import type { TipoFamilia, TipoRelacao } from '../../types';
 import styles from './OnboardingPage.module.css';
 
-interface OnboardingPageProps {
-  userId: string;
-  onComplete: () => void;
+interface PropsOnboarding {
+  idUsuario: string;
+  aoConcluir: () => void;
 }
 
-const COLORS = ['#667eea', '#2ed573', '#ffc312', '#ff4757', '#764ba2', '#26de81'];
+const CORES = ['#667eea', '#2ed573', '#ffc312', '#ff4757', '#764ba2', '#26de81'];
 
-const RELACOES: { value: RelacaoType; label: string }[] = [
-  // Tipando o array como RelacaoType[] garante que nenhum value inválido
-  // seja adicionado por engano no futuro.
-  { value: 'conjuge', label: 'Cônjuge' },
-  { value: 'filho',   label: 'Filho(a)' },
-  { value: 'mae',     label: 'Mãe' },
-  { value: 'pai',     label: 'Pai' },
-  { value: 'irmao',   label: 'Irmão(ã)' },
-  { value: 'outro',   label: 'Outro' },
+const RELACOES: { valor: TipoRelacao; rotulo: string }[] = [
+  { valor: 'conjuge', rotulo: 'Cônjuge' },
+  { valor: 'filho',   rotulo: 'Filho(a)' },
+  { valor: 'mae',     rotulo: 'Mãe' },
+  { valor: 'pai',     rotulo: 'Pai' },
+  { valor: 'irmao',   rotulo: 'Irmão(ã)' },
+  { valor: 'outro',   rotulo: 'Outro' },
 ];
 
-const FAMILY_TYPES: { value: FamilyType; label: string; icon: string }[] = [
-  // Mesmo padrão: array tipado com FamilyType evita valores fora do union.
-  { value: 'sozinho',       label: 'Moro sozinho(a)', icon: '👤' },
-  { value: 'casado',        label: 'Casado(a)',        icon: '💑' },
-  { value: 'morando_junto', label: 'Morando junto',   icon: '👫' },
-  { value: 'familia',       label: 'Família',          icon: '👨‍👩‍👧‍👦' },
+const TIPOS_FAMILIA: { valor: TipoFamilia; rotulo: string; icone: string }[] = [
+  { valor: 'sozinho',       rotulo: 'Moro sozinho(a)', icone: '👤' },
+  { valor: 'casado',        rotulo: 'Casado(a)',        icone: '💑' },
+  { valor: 'morando_junto', rotulo: 'Morando junto',   icone: '👫' },
+  { valor: 'familia',       rotulo: 'Família',          icone: '👨‍👩‍👧‍👦' },
 ];
 
-// Interface local para os membros sendo montados no onboarding
-interface NewMember {
+interface NovoMembro {
   nome: string;
-  relacao: RelacaoType; // tipado corretamente em vez de string genérica
+  relacao: TipoRelacao;
   cor: string;
 }
 
-export default function OnboardingPage({ userId, onComplete }: OnboardingPageProps) {
-  const [step, setStep] = useState(1);
+export default function PaginaOnboarding({ idUsuario, aoConcluir }: PropsOnboarding) {
+  const [passo, setPasso] = useState(1);
   const [nome, setNome] = useState('');
+  const [tipoFamilia, setTipoFamilia] = useState<TipoFamilia>('familia');
+  const [membros, setMembros] = useState<NovoMembro[]>([]);
+  const [nomeMembro, setNomeMembro] = useState('');
+  const [relacaoMembro, setRelacaoMembro] = useState<TipoRelacao>('conjuge');
+  const [corSelecionada, setCorSelecionada] = useState('');
 
-  // useState<FamilyType> → só aceita os 4 tipos de família válidos
-  const [familyType, setFamilyType] = useState<FamilyType>('familia');
-
-  const [members, setMembers] = useState<NewMember[]>([]);
-  const [currentMemberName, setCurrentMemberName] = useState('');
-
-  // useState<RelacaoType> → só aceita os 6 tipos de relação válidos
-  const [currentMemberRelacao, setCurrentMemberRelacao] = useState<RelacaoType>('conjuge');
-
-  const [selectedColor, setSelectedColor] = useState('');
-
-  const handleAddMember = () => {
-    if (currentMemberName && selectedColor) {
-      setMembers([...members, { nome: currentMemberName, relacao: currentMemberRelacao, cor: selectedColor }]);
-      setCurrentMemberName('');
-      setSelectedColor('');
+  const adicionarMembro = () => {
+    if (nomeMembro && corSelecionada) {
+      setMembros([...membros, { nome: nomeMembro, relacao: relacaoMembro, cor: corSelecionada }]);
+      setNomeMembro('');
+      setCorSelecionada('');
     }
   };
 
-  const handleComplete = async () => {
+  const finalizar = async () => {
     try {
-      const { error: profileError } = await supabase
+      const { error: erroPerfil } = await supabase
         .from('users_profile')
-        .update({ nome, family_type: familyType, onboarding_completed: true })
-        .eq('id', userId);
+        .update({ nome, family_type: tipoFamilia, onboarding_completed: true })
+        .eq('id', idUsuario);
 
-      if (profileError) { console.error(profileError); return; }
+      if (erroPerfil) { console.error(erroPerfil); return; }
 
-      for (const member of members) {
-        await supabase.from('family_members').insert({ user_id: userId, ...member });
+      for (const membro of membros) {
+        await supabase.from('family_members').insert({ user_id: idUsuario, ...membro });
       }
 
-      onComplete();
-    } catch (err) {
-      console.error(err);
+      aoConcluir();
+    } catch (erro) {
+      console.error(erro);
     }
   };
 
@@ -83,49 +72,55 @@ export default function OnboardingPage({ userId, onComplete }: OnboardingPagePro
     <div className={styles.container}>
       <div className={styles.card}>
 
-        {/* Step 1 - Nome */}
-        {step === 1 && (
+        {/* Passo 1 - Nome */}
+        {passo === 1 && (
           <>
             <h1 className={styles.title}>Qual é o seu nome?</h1>
             <div className="form-group">
-              <input type="text" className="form-input" placeholder="Digite seu nome" value={nome} onChange={(e) => setNome(e.target.value)} />
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Digite seu nome"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+              />
             </div>
-            <button className="btn-primary" onClick={() => setStep(2)} disabled={!nome.trim()}>Continuar</button>
+            <button className="btn-primary" onClick={() => setPasso(2)} disabled={!nome.trim()}>
+              Continuar
+            </button>
           </>
         )}
 
-        {/* Step 2 - Tipo de família */}
-        {step === 2 && (
+        {/* Passo 2 - Tipo de família */}
+        {passo === 2 && (
           <>
             <h1 className={styles.title}>Como é sua família?</h1>
             <div className={styles.familyTypeGrid}>
-              {FAMILY_TYPES.map((opt) => (
+              {TIPOS_FAMILIA.map((opcao) => (
                 <div
-                  key={opt.value}
-                  className={`${styles.familyTypeCard} ${familyType === opt.value ? styles.selected : ''}`}
-                  // Como FAMILY_TYPES já é tipado como FamilyType[], opt.value já é FamilyType.
-                  // Não precisa de cast aqui — o TypeScript sabe o tipo automaticamente!
-                  onClick={() => setFamilyType(opt.value)}
+                  key={opcao.valor}
+                  className={`${styles.familyTypeCard} ${tipoFamilia === opcao.valor ? styles.selected : ''}`}
+                  onClick={() => setTipoFamilia(opcao.valor)}
                 >
-                  <span className={styles.familyTypeIcon}>{opt.icon}</span>
-                  <div className={styles.familyTypeLabel}>{opt.label}</div>
+                  <span className={styles.familyTypeIcon}>{opcao.icone}</span>
+                  <div className={styles.familyTypeLabel}>{opcao.rotulo}</div>
                 </div>
               ))}
             </div>
-            <button className="btn-primary" onClick={() => setStep(3)}>Continuar</button>
+            <button className="btn-primary" onClick={() => setPasso(3)}>Continuar</button>
           </>
         )}
 
-        {/* Step 3 - Membros */}
-        {step === 3 && (
+        {/* Passo 3 - Membros */}
+        {passo === 3 && (
           <>
             <h1 className={styles.title}>Adicione os membros</h1>
             <p className={styles.subtitle}>Cadastre as pessoas que dividem as finanças com você</p>
 
-            {members.length > 0 && (
+            {membros.length > 0 && (
               <div className={styles.addedMembersList}>
-                {members.map((m, i) => (
-                  <div key={i} className={styles.addedMemberItem}>
+                {membros.map((m, indice) => (
+                  <div key={indice} className={styles.addedMemberItem}>
                     <div className={styles.addedMemberAvatar} style={{ background: m.cor }}>
                       {m.nome[0].toUpperCase()}
                     </div>
@@ -133,7 +128,12 @@ export default function OnboardingPage({ userId, onComplete }: OnboardingPagePro
                       <div className={styles.addedMemberName}>{m.nome}</div>
                       <div className={styles.addedMemberRelation}>{m.relacao}</div>
                     </div>
-                    <button className={styles.removeMemberBtn} onClick={() => setMembers(members.filter((_, idx) => idx !== i))}>×</button>
+                    <button
+                      className={styles.removeMemberBtn}
+                      onClick={() => setMembros(membros.filter((_, i) => i !== indice))}
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
@@ -141,36 +141,62 @@ export default function OnboardingPage({ userId, onComplete }: OnboardingPagePro
 
             <div className="form-group">
               <label className="form-label">Nome</label>
-              <input type="text" className="form-input" placeholder="Ex: João" value={currentMemberName} onChange={(e) => setCurrentMemberName(e.target.value)} />
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Ex: João"
+                value={nomeMembro}
+                onChange={(e) => setNomeMembro(e.target.value)}
+              />
             </div>
 
             <div className="form-group">
               <label className="form-label">Relação</label>
-              {/* Como RELACOES é tipado como RelacaoType[], opt.value já é RelacaoType.
-                  Mas e.target.value num onChange ainda é string, então precisamos do cast. */}
-              <select className="form-select" value={currentMemberRelacao} onChange={(e) => setCurrentMemberRelacao(e.target.value as RelacaoType)}>
-                {RELACOES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+              <select
+                className="form-select"
+                value={relacaoMembro}
+                onChange={(e) => setRelacaoMembro(e.target.value as TipoRelacao)}
+              >
+                {RELACOES.map((r) => (
+                  <option key={r.valor} value={r.valor}>{r.rotulo}</option>
+                ))}
               </select>
             </div>
 
             <div className="form-group">
               <label className="form-label">Cor</label>
               <div className="color-picker">
-                {COLORS.map((c) => (
-                  <div key={c} className={`color-option ${selectedColor === c ? 'selected' : ''}`} style={{ background: c }} onClick={() => setSelectedColor(c)} />
+                {CORES.map((cor) => (
+                  <div
+                    key={cor}
+                    className={`color-option ${corSelecionada === cor ? 'selected' : ''}`}
+                    style={{ background: cor }}
+                    onClick={() => setCorSelecionada(cor)}
+                  />
                 ))}
               </div>
             </div>
 
-            <button className="btn-secondary" onClick={handleAddMember} disabled={!currentMemberName.trim() || !selectedColor}>
+            <button
+              className="btn-secondary"
+              onClick={adicionarMembro}
+              disabled={!nomeMembro.trim() || !corSelecionada}
+            >
               Adicionar Membro
             </button>
 
-            <button className="btn-primary" onClick={handleComplete} disabled={members.length === 0} style={{ marginTop: '12px' }}>
+            <button
+              className="btn-primary"
+              onClick={finalizar}
+              disabled={membros.length === 0}
+              style={{ marginTop: '12px' }}
+            >
               Finalizar Configuração
             </button>
 
-            {members.length === 0 && <p className={styles.hintText}>Adicione pelo menos um membro para continuar</p>}
+            {membros.length === 0 && (
+              <p className={styles.hintText}>Adicione pelo menos um membro para continuar</p>
+            )}
           </>
         )}
 
