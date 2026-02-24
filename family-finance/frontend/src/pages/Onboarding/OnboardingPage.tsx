@@ -72,15 +72,24 @@ export default function PaginaOnboarding({ idUsuario, aoConcluir }: PropsOnboard
     <div className={styles.container}>
       <div className={styles.card}>
 
+        {/* Step progress dots */}
+        <div className={styles.stepIndicator}>
+          {[1, 2, 3].map((n) => (
+            <div key={n} className={`${styles.stepDot} ${passo === n ? styles.active : ''}`} />
+          ))}
+        </div>
+
         {/* Passo 1 - Nome */}
         {passo === 1 && (
           <>
-            <h1 className={styles.title}>Qual é o seu nome?</h1>
+            <h1 className={styles.title}>Qual é o seu nome? 👋</h1>
+            <p className={styles.subtitle}>Vamos personalizar sua experiência</p>
             <div className="form-group">
+              <label className="form-label">Nome</label>
               <input
                 type="text"
                 className="form-input"
-                placeholder="Digite seu nome"
+                placeholder="Ex: Laura"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
               />
@@ -94,7 +103,8 @@ export default function PaginaOnboarding({ idUsuario, aoConcluir }: PropsOnboard
         {/* Passo 2 - Tipo de família */}
         {passo === 2 && (
           <>
-            <h1 className={styles.title}>Como é sua família?</h1>
+            <h1 className={styles.title}>Como é a sua família?</h1>
+            <p className={styles.subtitle}>Selecione a opção que melhor descreve você</p>
             <div className={styles.familyTypeGrid}>
               {TIPOS_FAMILIA.map((opcao) => (
                 <div
@@ -115,7 +125,7 @@ export default function PaginaOnboarding({ idUsuario, aoConcluir }: PropsOnboard
         {passo === 3 && (
           <>
             <h1 className={styles.title}>Adicione os membros</h1>
-            <p className={styles.subtitle}>Cadastre as pessoas que dividem as finanças com você</p>
+            <p className={styles.subtitle}>Cadastre quem divide as finanças com você</p>
 
             {membros.length > 0 && (
               <div className={styles.addedMembersList}>
@@ -182,7 +192,7 @@ export default function PaginaOnboarding({ idUsuario, aoConcluir }: PropsOnboard
               onClick={adicionarMembro}
               disabled={!nomeMembro.trim() || !corSelecionada}
             >
-              Adicionar Membro
+              + Adicionar Membro
             </button>
 
             <button
@@ -191,7 +201,7 @@ export default function PaginaOnboarding({ idUsuario, aoConcluir }: PropsOnboard
               disabled={membros.length === 0}
               style={{ marginTop: '12px' }}
             >
-              Finalizar Configuração
+              Finalizar Configuração 🎉
             </button>
 
             {membros.length === 0 && (

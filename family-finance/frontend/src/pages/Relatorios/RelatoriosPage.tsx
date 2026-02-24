@@ -52,7 +52,7 @@ export default function PaginaRelatorios({ idUsuario, mesAtual, anoAtual }: Prop
 
   return (
     <div style={{ background: cores.bgPrimario, minHeight: '100vh', transition: 'background .3s' }}>
-      <div style={{ padding: '41px 16px 0' }}>
+      <div style={{ padding: '61px 16px 0' }}>
         {/* Filtro receita/despesa */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
           {(['despesa','receita'] as const).map(tipo => (
