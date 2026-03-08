@@ -29,7 +29,7 @@ function AppInterno() {
   const [anoAtual, setAnoAtual] = useState(new Date().getFullYear());
   const [visivel, setVisivel] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     verificarUsuario();
@@ -54,21 +54,45 @@ function AppInterno() {
   const fazerLogout = async () => { await supabase.auth.signOut(); setUsuarioAtual(null); setMostrarOnboarding(false); };
 
   const trocarMes = (novoMes: number, novoAno: number) => {
-    if (atualizando) return;
-    setAtualizando(true); setVisivel(false);
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => { setMesAtual(novoMes); setAnoAtual(novoAno); setVisivel(true); setAtualizando(false); }, 180);
-  };
+  if (atualizando) return;
 
-  const irMesAnterior = () => trocarMes(mesAtual === 1 ? 12 : mesAtual - 1, mesAtual === 1 ? anoAtual - 1 : anoAtual);
-  const irProximoMes  = () => trocarMes(mesAtual === 12 ? 1 : mesAtual + 1, mesAtual === 12 ? anoAtual + 1 : anoAtual);
+  setAtualizando(true);
+  setVisivel(false);
 
-  const mudarTela = (tela: Tela) => {
-    if (tela === telaAtiva) return;
-    setVisivel(false);
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => { setTelaAtiva(tela); setVisivel(true); }, 150);
-  };
+  if (timerRef.current) clearTimeout(timerRef.current);
+
+  timerRef.current = setTimeout(() => {
+    setMesAtual(novoMes);
+    setAnoAtual(novoAno);
+    setVisivel(true);
+    setAtualizando(false);
+  }, 180);
+};
+
+const irMesAnterior = () =>
+  trocarMes(
+    mesAtual === 1 ? 12 : mesAtual - 1,
+    mesAtual === 1 ? anoAtual - 1 : anoAtual
+  );
+
+const irProximoMes = () =>
+  trocarMes(
+    mesAtual === 12 ? 1 : mesAtual + 1,
+    mesAtual === 12 ? anoAtual + 1 : anoAtual
+  );
+
+const mudarTela = (tela: Tela) => {
+  if (tela === telaAtiva) return;
+
+  setVisivel(false);
+
+  if (timerRef.current) clearTimeout(timerRef.current);
+
+  timerRef.current = setTimeout(() => {
+    setTelaAtiva(tela);
+    setVisivel(true);
+  }, 150);
+};
 
   if (carregando) return <TelaDeCarga />;
   if (!usuarioAtual) return <PaginaAutenticacao aoAutenticar={verificarUsuario} />;
