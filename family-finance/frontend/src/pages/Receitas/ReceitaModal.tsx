@@ -80,7 +80,7 @@ export default function ModalReceita({ idUsuario, receita, membros, contas, aoFe
           </Campo>
         </div>
 
-        <Campo label="Conta (opcional)" cores={cores}>
+        <Campo label="Conta (Em breve)" cores={cores}>
           <select style={{ ...inp, appearance: 'none' }} value={idConta} onChange={e => setIdConta(e.target.value)}>
             <option value="">Nenhuma</option>
             {contas.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}

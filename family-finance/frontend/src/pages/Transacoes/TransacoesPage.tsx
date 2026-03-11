@@ -24,6 +24,7 @@ export default function PaginaTransacoes({ idUsuario, mesAtual, anoAtual, aoMuda
   const [busca, setBusca] = useState('');
   const [filtro, setFiltro] = useState<'todos'|'receita'|'despesa'>('todos');
   const [modalTipo, setModalTipo] = useState<'receita'|'despesa'|null>(null);
+  const [fabAberto, setFabAberto] = useState(false);
   const [carregando, setCarregando] = useState(true);
 
   const fmtMes = (m: number, a: number) => `${NOMES_MESES[m-1].slice(0,3).toLowerCase()}/${String(a).slice(2)}`;
@@ -64,6 +65,11 @@ export default function PaginaTransacoes({ idUsuario, mesAtual, anoAtual, aoMuda
   const fmtGrupo = (d: string) => new Date(d+'T12:00:00').toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
   const card = { background: cores.bgCard, borderRadius: 18, border: `1px solid ${cores.borda}`, boxShadow: cores.sombra, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 };
+
+  const abrirModal = (tipo: 'receita' | 'despesa') => {
+    setModalTipo(tipo);
+    setFabAberto(false);
+  };
 
   return (
     <div style={{ background: cores.bgPrimario, minHeight: '100vh', transition: 'background .3s' }}>
@@ -126,10 +132,41 @@ export default function PaginaTransacoes({ idUsuario, mesAtual, anoAtual, aoMuda
         )}
       </div>
 
-      {/* FAB */}
-      <div style={{ position: 'fixed', bottom: 90, right: 'calc(50% - 215px + 16px)', zIndex: 50, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-        <button onClick={() => setModalTipo('despesa')} style={{ width: 54, height: 54, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#3B82F6,#1D4ED8)', color: '#fff', fontSize: 26, boxShadow: '0 6px 20px rgba(59,130,246,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+      {/* FAB com dois botões */}
+      <div style={{ position: 'fixed', bottom: 90, right: 'calc(50% - 215px + 16px)', zIndex: 50, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
+        {/* Botões expandidos */}
+        {fabAberto && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, animation: 'fadeUp .15s ease' }}>
+              <span style={{ background: cores.bgCard, color: cores.textoCorpo, fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans',sans-serif", padding: '6px 12px', borderRadius: 10, boxShadow: cores.sombra, whiteSpace: 'nowrap' }}>Nova Receita</span>
+              <button
+                onClick={() => abrirModal('receita')}
+                style={{ width: 50, height: 50, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#22C55E,#16A34A)', color: '#fff', fontSize: 22, boxShadow: '0 6px 20px rgba(34,197,94,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >💰</button>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, animation: 'fadeUp .2s ease' }}>
+              <span style={{ background: cores.bgCard, color: cores.textoCorpo, fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans',sans-serif", padding: '6px 12px', borderRadius: 10, boxShadow: cores.sombra, whiteSpace: 'nowrap' }}>Nova Despesa</span>
+              <button
+                onClick={() => abrirModal('despesa')}
+                style={{ width: 50, height: 50, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#EF4444,#DC2626)', color: '#fff', fontSize: 22, boxShadow: '0 6px 20px rgba(239,68,68,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >💸</button>
+            </div>
+          </>
+        )}
+
+        {/* Botão principal */}
+        <button
+          onClick={() => setFabAberto(v => !v)}
+          style={{ width: 54, height: 54, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#3B82F6,#1D4ED8)', color: '#fff', fontSize: 26, boxShadow: '0 6px 20px rgba(59,130,246,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: fabAberto ? 'rotate(45deg)' : 'rotate(0deg)', transition: 'transform .2s ease' }}
+        >+</button>
       </div>
+
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
 
       {modalTipo === 'receita' && <ModalReceita idUsuario={idUsuario} receita={null} membros={membros} contas={contas} aoFechar={() => setModalTipo(null)} aoSalvar={() => { carregarDados(); setModalTipo(null); }} />}
       {modalTipo === 'despesa' && <ModalDespesa idUsuario={idUsuario} despesa={null} membros={membros} contas={contas} cartoes={cartoes} aoFechar={() => setModalTipo(null)} aoSalvar={() => { carregarDados(); setModalTipo(null); }} />}
