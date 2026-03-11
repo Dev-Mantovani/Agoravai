@@ -1,8 +1,8 @@
-export type TipoFamilia = 'sozinho' | 'casado' | 'morando_junto' | 'familia';
-export type TipoStatus = 'pago' | 'pendente' | 'recebido';
+export type TipoFamilia   = 'sozinho' | 'casado' | 'morando_junto' | 'familia';
+export type TipoStatus    = 'pago' | 'pendente' | 'recebido';
 export type TipoTransacao = 'receita' | 'despesa';
-export type TipoConta = 'corrente' | 'poupanca' | 'investimento';
-export type TipoRelacao = 'conjuge' | 'filho' | 'mae' | 'pai' | 'irmao' | 'outro';
+export type TipoConta     = 'corrente' | 'poupanca' | 'investimento';
+export type TipoRelacao   = 'conjuge' | 'filho' | 'mae' | 'pai' | 'irmao' | 'outro';
 
 export interface Usuario {
   id: string;
@@ -16,6 +16,7 @@ export interface MembroFamilia {
   nome: string;
   relacao: TipoRelacao;
   cor: string;
+  avatar_url?: string | null;  // ← NOVO: URL pública da foto no Supabase Storage
 }
 
 export interface Conta {
